@@ -905,6 +905,7 @@ async function serveImpl(
     await Mcp.serve(options.mcp?.name ?? name, options.version ?? '0.0.0', commands, {
       middlewares: options.middlewares,
       env: options.envSchema,
+      globals: options.globals?.schema,
       vars: options.vars,
       version: options.version,
       ...(options.mcp?.instructions ? { instructions: options.mcp.instructions } : undefined),
@@ -2000,6 +2001,7 @@ declare namespace fetchImpl {
           mcpOptions?: {
             middlewares?: MiddlewareHandler[] | undefined
             env?: z.ZodObject<any> | undefined
+            globals?: z.ZodObject<any> | undefined
             vars?: z.ZodObject<any> | undefined
           },
         ) => Promise<Response>)
@@ -2028,6 +2030,7 @@ function createMcpHttpHandler(
       | {
           middlewares?: MiddlewareHandler[] | undefined
           env?: z.ZodObject<any> | undefined
+          globals?: z.ZodObject<any> | undefined
           vars?: z.ZodObject<any> | undefined
         }
       | undefined,
@@ -2047,6 +2050,7 @@ function createMcpHttpHandler(
     Mcp.registerTools(server, commands, {
       env: mcpOptions?.env,
       fromJsonSchema,
+      globals: mcpOptions?.globals,
       middlewares: mcpOptions?.middlewares,
       name,
       request: (extra) => extra?.http?.req,
@@ -2074,6 +2078,7 @@ function createMcpHttpHandler(
     mcpOptions?: {
       middlewares?: MiddlewareHandler[] | undefined
       env?: z.ZodObject<any> | undefined
+      globals?: z.ZodObject<any> | undefined
       vars?: z.ZodObject<any> | undefined
     },
   ): Promise<Response> => {
@@ -2152,6 +2157,7 @@ function generatedOpenapi(
   const openapiCli = { name, description: options.description } as Cli
   toCommands.set(openapiCli, commands)
   if (options.rootCommand) toRootDefinition.set(openapiCli as unknown as Root, options.rootCommand)
+  if (options.globals) toGlobals.set(openapiCli, options.globals)
   return Openapi.fromCli(openapiCli, {
     title: name,
     ...(options.version ? { version: options.version } : undefined),
@@ -2189,6 +2195,7 @@ async function fetchImpl(
     return options.mcpHandler(req, commands, {
       middlewares: options.middlewares,
       env: options.envSchema,
+      globals: options.globals?.schema,
       vars: options.vars,
     })
 
@@ -3046,6 +3053,7 @@ async function runMcpDoctor(
     output,
     middlewares: options.middlewares,
     env: options.envSchema,
+    globals: options.globals?.schema,
     vars: options.vars,
     version: options.version,
     ...(options.mcp?.instructions ? { instructions: options.mcp.instructions } : undefined),
@@ -3443,7 +3451,7 @@ export type GlobalsDescriptor = {
 }
 
 /** @internal Maps CLI instances to their globals schema and alias map. */
-const toGlobals = new WeakMap<Cli, GlobalsDescriptor>()
+export const toGlobals = new WeakMap<Cli, GlobalsDescriptor>()
 
 /** @internal Maps root CLI instances to their command aliases. */
 const toRootAliases = new WeakMap<Root, string[]>()
